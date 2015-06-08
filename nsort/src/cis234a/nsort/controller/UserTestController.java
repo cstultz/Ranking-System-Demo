@@ -12,10 +12,8 @@ import cis234a.nsort.view.*;
 public class UserTestController {
 	
 	private RankingSystemController controller;
-	
 	private UserTestModel model;
 	private UserTestView view;
-	
 	private SqlUser_234a_t1 sqlUser;
 
 	/**
@@ -42,7 +40,9 @@ public class UserTestController {
 		setupFirstQuestion();
 		updateTotalQuestions();
 		updateProgressMeterSelectedState();
-		view.updateUserTestFrame(model.getUserTestFrameState());                        
+		view.updateUserTestFrame(model.getUserTestFrameState()); 
+		view.setUsername(model.getFullName());
+		view.setTestSessionID(model.getTestSessionID());
 	}
 	
 	/**
@@ -52,9 +52,9 @@ public class UserTestController {
 	{
 		Question question = model.getFirstQuestion();
 		Item item = question.getItemLeft();
-		view.setLeftItemLabelValue(item.getValue());
+		view.setLeftItem(item.getValue(), item.getValueImage());
 		item = question.getItemRight();
-		view.setRightItemLabelValue(item.getValue());
+		view.setRightItem(item.getValue(), item.getValueImage());
 	}
 	
 	/**
@@ -124,8 +124,6 @@ public class UserTestController {
 			calculateItemRankingsToTestItemsListItems();
 			int userID = sqlUser.getUserID(model.getUsername());
 			sqlUser.createUserNewTestSessionID(userID);
-			int testSessionID = sqlUser.getTestSessionIDScopeIdentity();
-			model.setTestSessionID(testSessionID);
 			sqlUser.saveTestResults(model.getTestItemsList(), model.getTestSessionID());
 			return false;
 		}
@@ -133,9 +131,9 @@ public class UserTestController {
 		{
 			//set the labels for the next question on the test
 			Item item = question.getItemLeft();
-			view.setLeftItemLabelValue(item.getValue());
+			view.setLeftItem(item.getValue(), item.getValueImage());
 			item = question.getItemRight();
-			view.setRightItemLabelValue(item.getValue());
+			view.setRightItem(item.getValue(), item.getValueImage());
 			
 			
 			return true;
@@ -205,5 +203,52 @@ public class UserTestController {
 	{
 		model.setProgressMeterSelectedState(sqlUser.getProgressMeterSelectedState());
 		view.updateProgressMeterSelectedState(model.getProgressMeterSelectedState());
+	}
+	
+	public void launchCurrentResultsReport()
+	{
+		//TODO
+	}
+	
+	/**
+	 * tally the currently taken items
+	 */
+	public void getCurrentResults()
+	{
+		Question question = model.getCurrentQuestion();
+		
+		while (question != null) //more question on the test exists
+		{
+			//all questions on the test have been answered. time to tally the results.						
+			Answer answer = question.getAnswer();
+			Item item;
+			
+			if (answer.getValue() == Value.LEFT)
+			{
+				item = question.getItemLeft();
+				model.addWin(item);
+				item = question.getItemRight();
+				model.addLoss(item);
+			}
+			
+			if (answer.getValue() == Value.RIGHT)
+			{
+				item = question.getItemLeft();
+				model.addLoss(item);
+				item = question.getItemRight();
+				model.addWin(item);
+			}
+	
+			if (answer.getValue() == Value.CANT_DECIDE)
+			{
+				item = question.getItemLeft();
+				model.addTie(item);
+				item = question.getItemRight();
+				model.addTie(item);
+			}
+			
+			//get next question
+			question = model.getNextQuestion();
+		}
 	}
 }

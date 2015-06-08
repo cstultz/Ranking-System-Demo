@@ -1,5 +1,7 @@
 package cis234a.nsort.model;
 
+import java.awt.Image;
+import java.awt.Toolkit;
 import java.sql.*;
 import java.util.ArrayList;
 /**
@@ -39,8 +41,8 @@ public enum SqlUser_234a_t1 {
 	private final static String queryDeleteTestItems = "DELETE FROM TestItems WHERE TestItems.test_ID = ?;";
 	private final static String queryPullItemIDsByValue = "SELECT itemID FROM Item WHERE value = ?;";
 	private final static String queryInsertTestItems = "INSERT INTO TestItems(test_ID, item_ID) VALUES (?, ?);";
-	private final static String queryPullExistingItems = "SELECT [value] FROM [234a_t1].dbo.Item ORDER BY itemID;";
-	private final static String queryPullTestItems= "SELECT [value] FROM Item JOIN TestItems ON Item.itemID = TestItems.item_ID WHERE TestItems.test_ID = "+ theOneTheOnlyTestID + " Order By Item.itemID;";
+	private final static String queryPullExistingItems = "SELECT [value] FROM [234a_t1].dbo.Item ORDER BY value;";
+	private final static String queryPullTestItemsAndImages= "SELECT [value] FROM Item FULL OUTER JOIN TestItems ON Item.itemID = TestItems.item_ID FULL OUTER JOIN [Image] ON Item.value = Image.name WHERE TestItems.test_ID = "+ theOneTheOnlyTestID + " Order By Item.itemID;";
 	private final static String queryCheckUser = "SELECT username FROM [User] WHERE username = ?;";
 	private final static String queryGetUser = "SELECT firstName, lastName, eMail FROM [User] WHERE username = ?;";
 	private final static String queryAddNewItem = "INSERT INTO Item(value) VALUES (?);";
@@ -54,6 +56,24 @@ public enum SqlUser_234a_t1 {
 	private final static String queryPullTestSessionIDScopeIdentity = "SELECT DISTINCT IDENT_CURRENT('TestSessions') as [Test Session ID];";
 	private final static String queryInsertTestResults = "INSERT INTO TestResults(testSession_ID, item_ID, wins, losses, ties) VALUES (?, ?, ?, ?, ?);";
 	private final static String queryPullUserID = "SELECT userID FROM [User] WHERE username = ?;";
+	private final static String queryAddNewImage = "INSERT INTO [Image] ([name], [graphic]) VALUES (?, ?);";
+	private final static String queryAddItemToImage = "INSERT INTO ItemImages (item_ID, image_ID) VALUES (?,?);";
+	private final static String queryUpdateItemToImage = "UPDATE ItemImages SET image_ID=? WHERE item_ID=?;";
+	private final static String queryGetImageByName = "SELECT [graphic] FROM [Image] WHERE [name] = ?;";
+	private final static String queryGetItemImagesByItemID = "SELECT TOP 1 [graphic] FROM [Image] JOIN ItemImages ON Image.imageID = ItemImages.image_ID WHERE ItemImages.item_ID = ?;";
+	private final static String queryImageIDByName = "SELECT imageID FROM [Image] WHERE [Image].name = ?;";
+	@SuppressWarnings("unused")
+	private final static String queryImageIDByNameFromItemImages = "SELECT image_ID FROM [ItemImages] JOIN [Item] ON ItemImages.item_ID = Item.itemID WHERE value = ?;";
+	private final static String queryupdateImage = "UPDATE [Image] SET [graphic] = ? WHERE name = ?;";
+	private final static String queryDeleteItemImage = "DELETE FROM ItemImages WHERE item_ID =?;";
+	private final static String queryDeleteItem = "DELETE FROM Item WHERE itemID =?;";
+	private final static String queryDeleteTestItem = "DELETE FROM TestItems WHERE item_ID =?;";
+	private final static String queryCheckItemOnTestResults = "SELECT COUNT(*) AS 'Count' FROM TestResults WHERE item_ID = ?;";
+	private final static String queryCheckItemOnItemImages = "SELECT COUNT(*) AS 'Count' FROM ItemImages WHERE item_ID = ?;";
+	private final static String queryCheckItemOnTestItems = "SELECT COUNT(*) AS 'Count' FROM TestItems WHERE item_ID = ?;";
+	@SuppressWarnings("unused")
+	private final static String queryCheckNameOnImage = "SELECT COUNT(*) AS 'Count' FROM Image WHERE name = ?;";
+	private final static String queryPullAllImages = "SELECT [name] FROM [Image]";
 	/*************************************queries for Ranking System*************************************/
 
 	/**
@@ -118,20 +138,43 @@ public enum SqlUser_234a_t1 {
      * @param listName of the specified list to determine the query to run in the database. 
      * @return ItemList created from the items returned from the database
      */
-    public ItemList pullTestItems()
+    public ItemList pullTestItemsAndImages()
     {
     	connect();
     	ItemList itemList = new ItemList();                       //create an empty Item List to be populated with the result set
     	
     	try {
     		Statement stmt = conn.createStatement();
-			ResultSet rs = stmt.executeQuery(queryPullTestItems);
+			ResultSet rs = stmt.executeQuery(queryPullTestItemsAndImages);
 			while (rs.next())
 			{
 				String input = rs.getString("value");
+				byte[] data = getValueImageByteArrayFromItemImages(input);
 				Item item = new Item();
 				item.setValue(input);
-				itemList.addItem(item);
+				if (data == null)
+				{
+					//if itemID has a ImageID associated to it
+					if (checkItemImagesForItem_ID(input))
+					{
+						data = getValueImageByteArrayFromItemImages(input); 
+					}
+					else
+					{
+						try {
+							data = getValueImageByteArray("no-image");
+						} catch (Exception e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
+				}
+				Image image = Toolkit.getDefaultToolkit().createImage(data);
+				item.setValueImage(image);
+				if (itemList.getItem(input) == null)
+				{
+					itemList.addItem(item);	
+				}
 			}
 		}
 		catch (SQLException e)
@@ -560,7 +603,8 @@ public enum SqlUser_234a_t1 {
 			while (rs.next())
 			{
 				testSessionID = rs.getInt("Test Session ID");
-				return testSessionID;
+				//add one to testSessionID because this is the ID prior to the test session being created
+				return testSessionID + 1; 
 			}
 		}
 		catch (SQLException e)
@@ -630,4 +674,326 @@ public enum SqlUser_234a_t1 {
 			e1.printStackTrace();
 		}
 	}
+	
+	public byte[] getValueImageByteArray(String name)
+	{
+		byte[] data = null;
+		try {
+			connect();
+    		PreparedStatement preparedStmt = conn.prepareStatement(queryGetImageByName);
+    		preparedStmt.setString(1, name);
+			ResultSet rs = preparedStmt.executeQuery();
+			while (rs.next())
+			{
+				data = rs.getBytes("graphic");
+				return data;
+			}
+		}
+		catch (SQLException e)
+		{
+			System.err.println("Got an exception! ");
+			System.err.println(e.getMessage());
+		}
+		return data;
+	}
+	
+	public byte[] getValueImageByteArrayFromItemImages(String value)
+	{
+		int itemID = pullTestItemIDByValue(value);
+		byte[] data = null;
+		try {
+			connect();
+    		PreparedStatement preparedStmt = conn.prepareStatement(queryGetItemImagesByItemID);
+    		preparedStmt.setInt(1, itemID);
+			ResultSet rs = preparedStmt.executeQuery();
+			while (rs.next())
+			{
+				data = rs.getBytes("graphic");
+				return data;
+			}
+		}
+		catch (SQLException e)
+		{
+			System.err.println("Got an exception! ");
+			System.err.println(e.getMessage());
+		}
+		return data;
+	}
+	
+	public void addImage(String value, byte[] data)
+	{
+		try {
+    		connect();
+    		PreparedStatement preparedStmt = conn.prepareStatement(queryAddNewImage);
+			preparedStmt.setString(1, value);
+			preparedStmt.setBytes(2, data);
+			preparedStmt.execute();
+		} catch (SQLException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+	}
+	
+	public void associateImageToExistingItem(String value)
+	{
+		int itemID = pullTestItemIDByValue(value);
+		int imageID = getImageIDByName(value);
+		try {
+    		connect();
+    		PreparedStatement preparedStmt = conn.prepareStatement(queryAddItemToImage);
+			preparedStmt.setInt(1, itemID);
+			preparedStmt.setInt(2, imageID);
+			preparedStmt.execute();
+		} catch (SQLException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+	}
+	
+	public int getImageIDByName(String name)
+	{
+		try {
+	    	connect();
+			PreparedStatement preparedStmt = conn.prepareStatement(queryImageIDByName);
+			preparedStmt.setString(1, name);
+	         // execute the preparedstatement
+	         ResultSet rs = preparedStmt.executeQuery();
+	         while (rs.next())
+	 			{
+	 				int input = rs.getInt("imageID");
+	 				return input;
+	 			}
+		} catch (SQLException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		return 0;
+	}
+	
+	public void updateImage(String value, byte[] data)
+	{
+		//queryupdateImage
+		try {
+    		connect();
+    		PreparedStatement preparedStmt = conn.prepareStatement(queryupdateImage);
+			preparedStmt.setBytes(1, data);
+			preparedStmt.setString(2, value);
+			preparedStmt.execute();
+		} catch (SQLException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+	}
+	
+//	public HashMap<String, Image> queryPullAllImages()
+//	{
+//		//queryPullAllItemImages
+//		HashMap<String, Image> itemImages = new HashMap<String, Image>();
+//		try {
+//	    	connect();
+//	    	Statement stmt = conn.createStatement();
+//			ResultSet rs = stmt.executeQuery(queryPullAllItemImages);
+//			while (rs.next())
+//	 			{
+//	 				String item_ID = rs.getString("item_ID");
+//	 				byte[] images_ID = rs.getBytes("image_ID");
+//	 				//itemImages.put(item_ID, images_ID);
+//	 			}
+//		} catch (SQLException e1) {
+//			// TODO Auto-generated catch block
+//			e1.printStackTrace();
+//		}
+//		return itemImages;
+//	}
+	
+	public boolean checkTestResultsForItem_ID(String value)
+	{
+		//queryCheckItemOnTestResults
+		int itemID = pullTestItemIDByValue(value);
+		int count = 0;
+    	try {
+    		connect();
+    		PreparedStatement preparedStmt = conn.prepareStatement(queryCheckItemOnTestResults);
+			preparedStmt.setInt(1, itemID);
+			ResultSet rs = preparedStmt.executeQuery();
+			while (rs.next())
+			{
+				count = rs.getInt("Count");
+			}
+			if (count > 0)
+			{
+				return true;
+			}
+		}
+		catch (SQLException e)
+		{
+			System.err.println("Got an exception! ");
+			System.err.println(e.getMessage());
+		}
+    	return false;
+	}
+	
+	/**
+     * Deletes Image associated to Item base on the Item value
+     */
+    public void deleteItemImage(String value)
+    {
+    	//queryDeleteItemImage
+    	int itemID = pullTestItemIDByValue(value);
+		try {
+			connect();
+			PreparedStatement preparedStmt = conn.prepareStatement(queryDeleteItemImage);
+			preparedStmt.setInt(1, itemID);
+	         // execute the preparedstatement
+	         preparedStmt.execute();
+		} catch (SQLException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+
+    }
+    
+    public boolean checkItemImagesForItem_ID(String value)
+	{
+		//queryCheckItemOnTestResults
+		int itemID = pullTestItemIDByValue(value);
+		int count = 0;
+    	try {
+    		connect();
+    		PreparedStatement preparedStmt = conn.prepareStatement(queryCheckItemOnItemImages);
+			preparedStmt.setInt(1, itemID);
+			ResultSet rs = preparedStmt.executeQuery();
+			while (rs.next())
+			{
+				count = rs.getInt("Count");
+			}
+			if (count > 0)
+			{
+				return true;
+			}
+		}
+		catch (SQLException e)
+		{
+			System.err.println("Got an exception! ");
+			System.err.println(e.getMessage());
+		}
+    	return false;
+	}
+    
+    /**
+     * Deletes Image associated to Item base on the Item value
+     */
+    public void deleteExistingItem(String value)
+    {
+    	//queryDeleteItemImage
+    	int itemID = pullTestItemIDByValue(value);
+		try {
+			connect();
+			PreparedStatement preparedStmt = conn.prepareStatement(queryDeleteItem);
+			preparedStmt.setInt(1, itemID);
+	         // execute the preparedstatement
+	         preparedStmt.execute();
+		} catch (SQLException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+
+    }
+    
+    public void deleteTestItem(String value)
+    {
+    	int itemID = pullTestItemIDByValue(value);
+		try {
+			connect();
+			PreparedStatement preparedStmt = conn.prepareStatement(queryDeleteTestItem);
+			preparedStmt.setInt(1, itemID);
+	         // execute the preparedstatement
+	         preparedStmt.execute();
+		} catch (SQLException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+    }
+    
+    public boolean checkTestItemsForItem_ID(String value)
+   	{
+   		//queryCheckItemOnTestResults
+   		int itemID = pullTestItemIDByValue(value);
+   		int count = 0;
+       	try {
+       		connect();
+       		PreparedStatement preparedStmt = conn.prepareStatement(queryCheckItemOnTestItems);
+   			preparedStmt.setInt(1, itemID);
+   			ResultSet rs = preparedStmt.executeQuery();
+   			while (rs.next())
+   			{
+   				count = rs.getInt("Count");
+   			}
+   			if (count > 0)
+   			{
+   				return true;
+   			}
+   		}
+   		catch (SQLException e)
+   		{
+   			System.err.println("Got an exception! ");
+   			System.err.println(e.getMessage());
+   		}
+       	return false;
+   	}
+    
+    public ArrayList<String> pullAllImages()
+    {
+    	connect();
+    	ArrayList<String> imagesList = new ArrayList<String>();                       //create an empty Item List to be populated with the result set
+    	
+    	try {
+    		Statement stmt = conn.createStatement();
+			ResultSet rs = stmt.executeQuery(queryPullAllImages);
+			while (rs.next())
+			{
+				String input = rs.getString("name");
+				imagesList.add(input);
+			}
+		}
+		catch (SQLException e)
+		{
+			System.err.println("Got an exception! ");
+			System.err.println(e.getMessage());
+		}
+    	return imagesList;
+    }
+    
+    //create ItemImages association
+    public void associateExistingItemToExistingImage(String value, String name)
+    {
+    	int itemID = pullTestItemIDByValue(value);
+		int imageID = getImageIDByName(name);
+		try {
+    		connect();
+    		PreparedStatement preparedStmt = conn.prepareStatement(queryAddItemToImage);
+			preparedStmt.setInt(1, itemID);
+			preparedStmt.setInt(2, imageID);
+			preparedStmt.execute();
+		} catch (SQLException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+    }
+    
+    public void updateItemImageAssociation(String value, String name)
+    {
+    	int itemID = pullTestItemIDByValue(value);
+		int imageID = getImageIDByName(name);
+		try {
+    		connect();
+    		PreparedStatement preparedStmt = conn.prepareStatement(queryUpdateItemToImage);
+			preparedStmt.setInt(1, imageID);
+			preparedStmt.setInt(2, itemID);
+			preparedStmt.execute();
+		} catch (SQLException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+    }
 }

@@ -3,25 +3,28 @@ package cis234a.nsort.view;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemListener;
 import java.awt.event.KeyListener;
+import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-
-import javax.swing.BorderFactory;
+import java.util.ArrayList;
 import javax.swing.DefaultListModel;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
-import javax.swing.UIManager;
-
+import javax.swing.border.BevelBorder;
 import cis234a.nsort.model.*;
+import javax.swing.JComboBox;
 /**
  * The LoginPanel Class contains the components for the LoginFrame.
  *  
@@ -32,44 +35,75 @@ import cis234a.nsort.model.*;
 public class AdminTestSetupPanel extends JPanel
 {
 
-	private static final Dimension DIM = new Dimension(692, 422);
+	//private static final Dimension DIM = new Dimension(680, 453);
 	
 	private JLabel existingItemsLabel;
-	private JList<String> existingItemsList;
-	private DefaultListModel<String> existingItemsListModel;
+	protected JList<String> existingItemsList;
+	protected DefaultListModel<String> existingItemsListModel;
 	private JScrollPane existingItemsScrollPane;
-
-	private JLabel addItemLabel;
+	
+	private JPopupMenu existingItemsListRightClickPopupMenu;
+	private JMenuItem deleteMenuItem;
 	private JTextField addItemTextField;
 	private JButton submitButton;
 	
 	private JLabel testItemsLabel;
-	private JList<String> testItemsList;
-	private DefaultListModel<String> testItemsListModel;
+	protected JList<String> testItemsList;
+	protected DefaultListModel<String> testItemsListModel;
 	private JScrollPane testItemsScrollPane;
-	private JTextArea instructionsTextArea;
 	
 	private JButton finishButton;
-	private JLabel lblOr;
 	private JButton cancelButton;
 	private JButton reportButton;
 	private JCheckBox progressMeterCheckBox;
+	
+	private ImagePanel imagePanel;
+	private JButton browseButton;
+
+	private JComboBox<String> existingImagesComboBox;
+	
+	private JLabel lblNewLabel;
+	
+	private ArrayList<String> imagesList;
 	
 	/**
 	 * Constructor for the AdminTestSetupPanel.
 	 */
 	public AdminTestSetupPanel()
 	{
-		instructionsTextArea = new JTextArea();
-		instructionsTextArea.setBounds(350, 52, 329, 244);
+		imagePanel = new ImagePanel();
+		imagePanel.setSize(250, 250);
+		imagePanel.setLocation(288, 40);
+		
+		existingImagesComboBox = new JComboBox<String>();
+		existingImagesComboBox.setMaximumRowCount(4);
+		existingImagesComboBox.setEnabled(false);
+		//existingImagesComboBox.setVisible(false);                               
+		
+		lblNewLabel = new JLabel("Existing Images:");
+		lblNewLabel.setHorizontalAlignment(SwingConstants.CENTER);
+		lblNewLabel.setFont(new Font("Arial", Font.BOLD, 14));
+		//lblNewLabel.setVisible(false);
 
+		browseButton = new JButton("Edit");
+		browseButton.setEnabled(false);
+		browseButton.setBounds(382, 301, 63, 23);
+		
+		deleteMenuItem = new JMenuItem("Delete Item", new ImageIcon("resources/delete.jpg"));
+
+		
+		existingItemsListRightClickPopupMenu = new JPopupMenu("Existing Items List Right Click Menu");
+		existingItemsListRightClickPopupMenu.setVisible(false);
+		existingItemsListRightClickPopupMenu.add(deleteMenuItem); 
+		existingItemsListRightClickPopupMenu.setBorder(new BevelBorder(BevelBorder.RAISED));
+				
 		existingItemsListModel = new DefaultListModel<String>();
 
 		existingItemsLabel = new JLabel("Existing Items");
 		existingItemsLabel.setHorizontalAlignment(SwingConstants.CENTER);
-		existingItemsLabel.setBounds(35, 25, 129, 22);
+		existingItemsLabel.setBounds(10, 11, 129, 22);
 		existingItemsScrollPane = new JScrollPane();
-		existingItemsScrollPane.setBounds(35, 53, 129, 243);
+		existingItemsScrollPane.setBounds(10, 44, 129, 243);
 		existingItemsList = new JList<String>(existingItemsListModel);
 		existingItemsScrollPane.setViewportView(existingItemsList);
 		existingItemsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -78,37 +112,34 @@ public class AdminTestSetupPanel extends JPanel
 
 		testItemsLabel = new JLabel("Test Items");
 		testItemsLabel.setHorizontalAlignment(SwingConstants.CENTER);
-		testItemsLabel.setBounds(214, 25, 96, 22);
+		testItemsLabel.setBounds(149, 11, 129, 22);
 		testItemsScrollPane = new JScrollPane();
-		testItemsScrollPane.setBounds(198, 53, 129, 243);
+		testItemsScrollPane.setBounds(149, 44, 129, 243);
 		testItemsList = new JList<String>(testItemsListModel);
 		testItemsScrollPane.setViewportView(testItemsList);
 		testItemsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-
-		addItemLabel = new JLabel("Add an item");
-		addItemLabel.setBounds(35, 310, 83, 17);
 		addItemTextField = new JTextField();
-		addItemTextField.setBounds(128, 308, 116, 20);
-		submitButton = new JButton("Submit");
+		addItemTextField.setBounds(10, 302, 129, 20);
+		submitButton = new JButton("Add");
 		submitButton.setFont(new Font("Arial", Font.PLAIN, 12));
-		submitButton.setBounds(250, 307, 77, 23);
-		reportButton = new JButton("Test Results Reporting");
+		submitButton.setBounds(149, 301, 63, 23);
+		reportButton = new JButton("Test Results");
 		reportButton.setFont(new Font("Arial", Font.PLAIN, 12));
-		reportButton.setBounds(35, 382, 180, 23);
-		progressMeterCheckBox = new JCheckBox("Display progress indicator during the User Test?");
-		progressMeterCheckBox.setHorizontalAlignment(SwingConstants.CENTER);
+		reportButton.setBounds(544, 100, 129, 23);
+		progressMeterCheckBox = new JCheckBox("Progress Meter");
+		progressMeterCheckBox.setHorizontalAlignment(SwingConstants.LEFT);
 		progressMeterCheckBox.setFont(new Font("Arial", Font.PLAIN, 12));
-		progressMeterCheckBox.setBounds(35, 341, 292, 23);
+		progressMeterCheckBox.setBounds(544, 70, 129, 23);
 		finishButton = new JButton("Finish");
 		finishButton.setFont(new Font("Arial", Font.PLAIN, 12));
-		finishButton.setBounds(261, 382, 77, 23);
-		finishButton.setEnabled(false);                                             
-		lblOr = new JLabel("OR");
-		lblOr.setFont(new Font("Arial", Font.PLAIN, 11));
-		lblOr.setBounds(348, 387, 15, 14);
+		finishButton.setBounds(544, 134, 129, 23);
+		finishButton.setEnabled(false);
 		cancelButton = new JButton("Cancel");
 		cancelButton.setFont(new Font("Arial", Font.PLAIN, 12));
-		cancelButton.setBounds(373, 382, 77, 23);
+		cancelButton.setBounds(544, 168, 129, 23);
+		
+		existingImagesComboBox.setBounds(544, 227, 129, 20);
+		lblNewLabel.setBounds(544, 202, 129, 17);
 
 		setupLayout();
 		setupPanel();
@@ -121,35 +152,10 @@ public class AdminTestSetupPanel extends JPanel
 	public void setupLayout()
 	{
 		// set border for the panel
-		setBorder(BorderFactory.createTitledBorder(
-                BorderFactory.createEtchedBorder(), "Admin Setup Panel"));
+//		setBorder(BorderFactory.createTitledBorder(
+//                BorderFactory.createEtchedBorder(), "Admin Setup Panel"));
 		existingItemsLabel.setFont(new Font("Arial", Font.BOLD, 16));
 		testItemsLabel.setFont(new Font("Arial", Font.BOLD, 16));
-		addItemLabel.setFont(new Font("Arial", Font.BOLD, 14));
-		instructionsTextArea.setFont(new Font("Arial", Font.PLAIN, 12));
-		
-		//Include the instructions to be dynamic to the labels of the components on the panel.
-
-		instructionsTextArea.setBackground(UIManager.getColor("Panel.background"));
-		instructionsTextArea.setEditable(false);
-
-		instructionsTextArea.setText("INSTRUCTIONS:\r\n\u2022 To " + addItemLabel.getText() + " to the '" + existingItemsLabel.getText() + "' List:" +
-                "\r\n     1. Type a new item into the '" + addItemLabel.getText() + "' text field." + 
-                "\r\n     2. Click '" + submitButton.getText() + "'." + 
-                "\r\n\u2022 To add an item to the '" + testItemsLabel.getText() + "' List:" + 
-                "\r\n     1. Double-click an item in the '" + existingItemsLabel.getText() + "' List." + 
-                "\r\n\u2022 To remove an item from the '" + testItemsLabel.getText() + "' List:" + 
-                "\r\n     1. Double-click an item in the '" + testItemsLabel.getText() + "' List." + 
-                "\r\n\u2022 To discard the current changes to the '" + testItemsLabel.getText() + "' List:" + 
-                "\r\n     1. Click '" + cancelButton.getText() + "'." +
-                "\r\n\u2022 To keep the current changes to the '" + testItemsLabel.getText() + "' List:" +
-                "\r\n     1. Click '" + finishButton.getText() + "'." +
-                "\r\n\u2022 To view the Test Results:" +
-                "\r\n     1. Click '" + reportButton.getText() + "'." +
-                "\r\n\u2022 To show/hide the Progress Meter during the User Test:" +
-                "\r\n     1. Click the Display progress indicator check box:");
-		
-		lblOr.setHorizontalAlignment(SwingConstants.CENTER);
 	}
 	
 	/**
@@ -157,7 +163,7 @@ public class AdminTestSetupPanel extends JPanel
 	 */
 	public void setupPanel()
 	{
-		setPreferredSize(DIM);
+		setPreferredSize(new Dimension(683, 334));
 	}
 	
 	/**
@@ -170,15 +176,17 @@ public class AdminTestSetupPanel extends JPanel
 		add(testItemsLabel);
 		add(existingItemsScrollPane);
 		add(testItemsScrollPane);
-		add(instructionsTextArea);
-		add(addItemLabel);
 		add(addItemTextField);
 		add(submitButton);
 		add(reportButton);
 		add(progressMeterCheckBox);
 		add(finishButton);
-		add(lblOr);
-		add(cancelButton);	
+		add(cancelButton);
+		add(imagePanel);
+		add(browseButton);
+		add(existingItemsListRightClickPopupMenu);
+		add(existingImagesComboBox);
+		add(lblNewLabel);
 	}
 
 	/**
@@ -267,6 +275,68 @@ public class AdminTestSetupPanel extends JPanel
 		return existingItemsList.getSelectedValue();
 	}
 	
+	public String getAboveExistingItemsListSelectedValue()
+	{
+		int index = existingItemsList.getSelectedIndex();
+		String value = existingItemsListModel.get(index);
+		if (index == 0)
+		{
+			//do nothing
+		}
+		else
+		{
+			value = existingItemsListModel.get(index - 1);
+		}
+		return value;
+	}
+	
+	public String getBelowExistingItemsListSelectedValue()
+	{
+		int index = existingItemsList.getSelectedIndex();
+		String value = existingItemsListModel.get(index);
+		if (index == existingItemsListModel.getSize() - 1)
+		{
+			//do nothing
+		}
+		else
+		{
+			value = existingItemsListModel.get(index + 1);
+		}
+		return value;
+	}
+	
+	public String getAboveTestItemsListSelectedValue()
+	{
+		int index = testItemsList.getSelectedIndex();
+		String value = testItemsListModel.get(index);
+		if (index == 0)
+		{
+			//do nothing
+		}
+		else
+		{
+			value = testItemsListModel.get(index - 1);
+		}
+		
+		return value;
+	}
+	
+	public String getBelowTestItemsListSelectedValue()
+	{
+		int index = testItemsList.getSelectedIndex();
+		String value = testItemsListModel.get(index);
+		if (index == testItemsListModel.getSize() - 1)
+		{
+			//do nothing
+		}
+		else
+		{
+			value = testItemsListModel.get(index + 1);
+		}
+		
+		return value;
+	}
+	
 	/**
 	 * add a action listener to the 'Finish' button
 	 * 
@@ -275,6 +345,11 @@ public class AdminTestSetupPanel extends JPanel
 	public void addFinishButtonActionListener(ActionListener al) 
 	{
 		finishButton.addActionListener(al);
+	}
+	
+	public void addExistingImagesComboBoxItemListener(ItemListener il) 
+	{
+		existingImagesComboBox.addItemListener(il);
 	}
 	
 	/**
@@ -317,6 +392,16 @@ public class AdminTestSetupPanel extends JPanel
 		addItemTextField.addKeyListener(kl);
 	}
 	
+	public void addAddExistingItemsListKeyListener(KeyListener kl)
+	{
+		existingItemsList.addKeyListener(kl);
+	}
+	
+	public void addAddTestItemsListKeyListener(KeyListener kl)
+	{
+		testItemsList.addKeyListener(kl);
+	}
+
 	/**
 	 * simulates a 'Submit' button click
 	 */
@@ -396,16 +481,6 @@ public class AdminTestSetupPanel extends JPanel
 	}
 	
 	/**
-	 * add an existing items list item to the test items list
-	 * 
-	 * @param selectedValue of the item being added to the test
-	 */
-	public void addSelectedExistingItemTotestItemsList(String selectedValue)
-	{
-		testItemsListModel.addElement(selectedValue);
-	}
-	
-	/**
 	 * show the duplicate message of an item on the test items list to the user
 	 * 
 	 * @param selectedValue of the item already on the test items list.
@@ -442,8 +517,168 @@ public class AdminTestSetupPanel extends JPanel
 	 * 
 	 * @param selectedValue of the item being added to the test items list.
 	 */
-	public void updateTestItemsList(String selectedValue)
+	public void addItemToTestItemsList(String selectedValue)
 	{
 		testItemsListModel.addElement(selectedValue);
+	}
+
+	public void clearTestItemsListSelection()
+	{
+		testItemsList.clearSelection();
+	}
+
+	public void clearExistingItemsListSelection()
+	{
+		existingItemsList.clearSelection();
+	}
+
+	/**
+	 * add an action listener to the 'Edit' button
+	 * 
+	 * @param al user has clicked the 'Edit' button
+	 */
+	public void addEditButtonActionListener(ActionListener al)
+	{
+		browseButton.addActionListener(al);
+	}
+	
+	public boolean getEditButtonCurrentState()
+	{
+		return browseButton.isEnabled();
+	}
+	
+	public void setEditButtonCurrentState(boolean currentState)
+	{
+		browseButton.setEnabled(currentState);
+	}
+	
+	public boolean getImagesComboBoxCurrentState()
+	{
+		return existingImagesComboBox.isEnabled();
+	}
+	
+	public void setImagesComboBoxCurrentState(boolean currentState)
+	{
+		existingImagesComboBox.setEnabled(currentState);
+	}
+
+	public void updateImage(byte[] data)
+	{
+		imagePanel.setImage(data);
+	}
+	
+	public void updateItemImageToBlank()
+	{
+		imagePanel.updateItemImageToBlank();
+	}
+	
+	@SuppressWarnings("unchecked")
+	public String existingItemListRightClickMenu(MouseEvent event)
+	{
+		JList<String> list = (JList<String>)event.getSource();
+        int row = list.locationToIndex(event.getPoint());
+        list.setSelectedIndex(row);
+
+        existingItemsListRightClickPopupMenu.setVisible(true);
+        existingItemsListRightClickPopupMenu.show(list, event.getPoint().x+5, event.getPoint().y+10);
+        
+        return list.getSelectedValue();
+	}
+	
+	public void addExistingItemsListRightClickPopupMenuDeleteItemActionListener(ActionListener al)
+	{
+		deleteMenuItem.addActionListener(al);
+	}
+	
+	public String getPopupMenuSelectedValue()
+	{
+		return existingItemsListRightClickPopupMenu.getSubElements().toString();
+	}
+	
+	public void removeItemFromExistingItemsList(String value)
+	{
+		existingItemsListModel.removeElement(value);
+	}
+	
+	public boolean checkItemOnTestItemsList(String value)
+	{
+		if (testItemsListModel.contains(value))
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	
+	public void setExistingImagesComboBox()
+	{
+		existingImagesComboBox.removeAllItems();
+		existingImagesComboBox.addItem("");
+		for (int i = 0; i < imagesList.size(); i++)
+		{
+			existingImagesComboBox.addItem(imagesList.get(i));
+		}
+	}
+	
+	public void setImagesList(ArrayList<String> imagesList)
+	{
+		this.imagesList = new ArrayList<String>();
+		this.imagesList = imagesList;
+		setExistingImagesComboBox();
+		clearExistingItemComboBox();
+	}
+	
+	public ArrayList<String> getImagesList()
+	{
+		return imagesList;
+	}
+	
+	public void clearExistingImagesComboBox()
+	{
+		existingImagesComboBox.removeAllItems();
+	}
+	
+	public String getComboBoxImageSelected()
+	{
+		String selectedItem = (String) existingImagesComboBox.getSelectedItem();
+		existingImagesComboBox.setSelectedIndex(0);
+		return selectedItem;
+	}
+	
+	public boolean checkExistingImagesComboBoxIsSelected()
+	{
+		return existingImagesComboBox.hasFocus();
+	}
+	
+	public void clearExistingItemComboBox()
+	{
+		existingImagesComboBox.setSelectedIndex(0);
+	}
+	
+	public int getComboBoxCurrentIndex()
+	{
+		return existingImagesComboBox.getSelectedIndex();
+	}
+	
+	public void addItemToImagesList(String newItemValue)
+	{
+		if (!imagesList.contains(newItemValue))
+		{
+			imagesList.add(newItemValue);
+		}
+		setExistingImagesComboBox();
+		clearExistingItemComboBox();
+	}
+	
+	public void selectNewItem(String value)
+	{
+		existingItemsList.setSelectedValue(value, true);
+	}
+	
+	public void showNoImage()
+	{
+		imagePanel.showNoImage();
 	}
 }

@@ -6,6 +6,7 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 
 import cis234a.nsort.controller.*;
@@ -32,6 +33,7 @@ public class LoginFrame extends JFrame implements LoginView
 		getContentPane().add(loginPanel);
 		
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		setResizable(false);
 		pack();
 		setVisible(false);    
 		setLocationRelativeTo(null);
@@ -39,7 +41,7 @@ public class LoginFrame extends JFrame implements LoginView
 	
 	private LoginPanel createLoginPanel()
 	{
-		LoginPanel loginPanel = new LoginPanel();
+		loginPanel = new LoginPanel();
 		loginPanel.addLoginButtonActionListener(new ActionListener()
 		{
 			@Override
@@ -110,17 +112,15 @@ public class LoginFrame extends JFrame implements LoginView
 			controller.login();
 			if(controller.checkUserAccessRoleForAdmin())
 			{
-				JOptionPane.showMessageDialog(null,"Welcome, " + controller.getFullUserName().trim() + "!","Login Successful - Administrator",JOptionPane.PLAIN_MESSAGE);
+				JOptionPane.showMessageDialog(null,new JLabel("Welcome, " + controller.getFullUserName().trim() + "!", JLabel.CENTER),"Login Successful - Administrator",JOptionPane.PLAIN_MESSAGE);
 				controller.launchAdminTestSetup();
 			}
 			if (controller.checkUserAccessRoleForUser())
 			{
 				JOptionPane.showMessageDialog(null,"Welcome, " + controller.getFullUserName().trim() +
-                        "\r\n\r\n Next you will take a test whereby you will compare items in groups of 2." +
-                        "\r\n Every item on the test will be compared to every other item on the test." + 
-                        "\r\n You must complete the test in order to save the results. " + 
-                        "\r\n Close the window at anytime during the test to exit without saving. " + 
-                        "\r\n Click OK to start the test.","User Test - Welcome Message",JOptionPane.INFORMATION_MESSAGE);
+						"\r\n\r\n This test compares items in groups of 2." +
+                        "\r\n Each item on the test will be compared to every other item on the test." + 
+                        "\r\n You must complete the test in order to save the test results.", "User Test - Welcome Message",JOptionPane.INFORMATION_MESSAGE);
 				controller.launchUserTestFrame();
 			}
 		}

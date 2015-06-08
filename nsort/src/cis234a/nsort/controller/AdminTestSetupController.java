@@ -1,5 +1,15 @@
 package cis234a.nsort.controller;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
+import javax.swing.filechooser.FileFilter;
+import javax.swing.filechooser.FileNameExtensionFilter;
+
 import cis234a.nsort.model.*;
 import cis234a.nsort.view.*;
 /**
@@ -11,12 +21,12 @@ import cis234a.nsort.view.*;
  */
 public class AdminTestSetupController {
 	
-	private RankingSystemController controller;
+	protected RankingSystemController controller;
 	
-	private AdminTestSetupModel model;
-	private AdminTestSetupView view;
+	protected AdminTestSetupModel model;
+	protected AdminTestSetupView view;
 	
-	private SqlUser_234a_t1 sqlUser;
+	protected SqlUser_234a_t1 sqlUser;
 
 	/**
 	 * Constructor for the class.
@@ -41,6 +51,7 @@ public class AdminTestSetupController {
 	{
 		populateExistingItemsToTheDefaultListModel();
 		populateTestItemsToTheDefaultListModel();
+		populateImagesList();
 		updateProgressMeterCheckBoxSetSelected();
 		view.updateAdminTestSetupFrame(model.getAdminTestSetupState());
 	}
@@ -61,6 +72,10 @@ public class AdminTestSetupController {
 		view.setTestItemsList(model.getTestItemsList());
 	}
 
+	public void populateImagesList()
+	{
+		view.setImagesList(model.getImagesList());
+	}
 	/**
 	 * remove an item from the Test Items list.
 	 * 
@@ -68,7 +83,7 @@ public class AdminTestSetupController {
 	 */
 	public void removeItemFromTestItemList(String selectedValue)
 	{
-		model.removeItemFromTestItemList(selectedValue);
+		model.removeItemFromTestItemsList(selectedValue);
 	}
 	
 	/**
@@ -83,9 +98,8 @@ public class AdminTestSetupController {
 			Item item = new Item();                                     //create the new Item
 			item.setValue(selectedValue);                               //set the value of the item
 			
+			view.addItemToTestItemsList(selectedValue);                    //update the view
 			model.addExistingItemToTestItemsList(selectedValue);        //update the model
-			
-			view.updateTestItemsList(selectedValue);                    //update the view
 		}
 		else
 		{
@@ -178,6 +192,17 @@ public class AdminTestSetupController {
 			{
 				model.addNewItemToExistingItemsList(newItemValue);
 				sqlUser.addNewItem(newItemValue);
+				byte[] data = sqlUser.getValueImageByteArray("no-image");
+				
+				if (sqlUser.getValueImageByteArray(newItemValue) == null)
+				{
+					sqlUser.addImage(newItemValue, data);
+				}
+				else
+				{
+					//updateItemImageview.updateImage(data);
+				}
+				sqlUser.associateImageToExistingItem(newItemValue);
 				view.updateExistingItemsList(newItemValue);
 			}
 			else
@@ -225,10 +250,151 @@ public class AdminTestSetupController {
 	 */
 	public void launchReport()
 	{
-		Report model = new Report();
-		ReportView view = new ReportView(model.getUsers());
-		@SuppressWarnings("unused")
-		ReportController controlsler = new ReportController(view, model);
-		view.setVisible(true);
+		Report model = new Report();		
+		ReportView view = new ReportFrame();
+		ReportController controller = new ReportController(this, view, model);
+		view.registerController(controller);
+	}
+	
+	public void updateItemImage(String value)
+	{
+		//get graphic based on the Item_ID associated to the ImageID on the ItItemImages table 
+		byte[] data = sqlUser.getValueImageByteArrayFromItemImages(value);
+		
+		//if the Item_ID on the ItemImages table does not have an association to an image
+		if (data == null)
+		{
+			//get graphic from Images table based on image name equaling the item value
+			data = sqlUser.getValueImageByteArray(value);
+
+			//if no Image matches the image name in database
+			if (data == null)
+			{
+				//associate no-image to item value in ItemImages table
+				sqlUser.associateExistingItemToExistingImage(value, "no-image");
+				data = sqlUser.getValueImageByteArrayFromItemImages(value);
+			}
+			else
+			{
+				sqlUser.associateExistingItemToExistingImage(value, value);
+			}
+		}
+		view.updateImage(data);
+	}
+	
+	/**
+	 * populate the Items from the model to the Existing Items List in the view.
+	 */
+	public void associateImageToExistingItem(String currentSelection)
+	{
+		File selectedFile = null;
+		byte[] data = null;
+		JFileChooser openFile = new JFileChooser(System.getProperty("user.home") + System.getProperty("file.separator") + "Pictures");
+		FileFilter filter = new FileNameExtensionFilter(".png, .jpg", new String[] {"png", "jpg"});
+		openFile.setFileFilter(filter);
+		openFile.addChoosableFileFilter(filter);
+		openFile.setCurrentDirectory(new File("User.dir"));;
+		int returnVal = openFile.showOpenDialog(null);
+		if(returnVal == JFileChooser.APPROVE_OPTION) {
+		  selectedFile = new File(openFile.getSelectedFile().getAbsolutePath());
+		  
+			try {
+				data = convertFileToByteArray(selectedFile);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			//if Image table does not have a name match 
+			if (sqlUser.getValueImageByteArray(currentSelection) == null)
+			{
+				sqlUser.addImage(currentSelection, data);
+				sqlUser.updateItemImageAssociation(currentSelection, currentSelection);
+			}
+			else
+			{
+				
+				sqlUser.updateImage(currentSelection, data);
+
+				//if Image table does not have a name match
+				if (sqlUser.getValueImageByteArrayFromItemImages(currentSelection) == null)
+				{
+					sqlUser.associateImageToExistingItem(currentSelection);
+				}
+				else
+				{
+					sqlUser.updateItemImageAssociation(currentSelection, currentSelection);
+				}
+			}
+			view.updateImage(data);
+		}
+	}
+	
+	public byte[] convertFileToByteArray(File file) throws IOException {
+
+	    ByteArrayOutputStream outputStream = null;
+	    InputStream inputStream = null;
+	    try {
+	        byte[] buffer = new byte[4096];
+	        outputStream = new ByteArrayOutputStream();
+	        inputStream = new FileInputStream(file);
+	        int read = 0;
+	        while ( (read = inputStream.read(buffer)) != -1 ) {
+	        	outputStream.write(buffer, 0, read);
+	        }
+	    } finally { 
+	        try {
+	             if ( outputStream != null ) 
+	            	 outputStream.close();
+	        } catch ( IOException e) {
+	        }
+
+	        try {
+	             if ( inputStream != null ) 
+	            	 inputStream.close();
+	        } catch ( IOException e) {
+	        }
+	    }
+	    return outputStream.toByteArray();
+	}
+	
+	public void deleteExistingItem(String currentSelection)
+	{
+		if (sqlUser.checkTestResultsForItem_ID(currentSelection))
+		{
+			JOptionPane.showMessageDialog(null, "Item '" + currentSelection + "' is associated to 1 or more user test results and thus cannot be deleted.","Item '" + currentSelection + "' appears on Test Results",JOptionPane.WARNING_MESSAGE);
+		}
+		else if (view.checkItemOnTestItemsList(currentSelection))
+		{
+			JOptionPane.showMessageDialog(null, "Please remove the item from the Test Items List and try again.","Item '" + currentSelection + "' appears on Test Items List",JOptionPane.WARNING_MESSAGE);
+
+//			sqlUser.deleteTestItem(currentSelection);
+//			view.enableFinishButton(true);
+//			model.removeItemFromTestItemsList(currentSelection);
+//			view.removeItemFromTestItemsList(currentSelection);
+		}
+		else
+		{
+			if (sqlUser.checkItemImagesForItem_ID(currentSelection))
+			{
+				sqlUser.deleteItemImage(currentSelection);
+			}
+			
+			if (! view.checkItemOnTestItemsList(currentSelection) && sqlUser.checkTestItemsForItem_ID(currentSelection))
+			{
+				sqlUser.deleteTestItem(currentSelection);
+				model.removeItemFromTestItemsList(currentSelection);
+			}
+			
+			sqlUser.deleteExistingItem(currentSelection);
+			model.removeItemFromExistingItemsList(currentSelection);
+			view.removeItemFromExistingItemsList(currentSelection);
+			
+		}
+	}
+	
+	public void updateItemImageAssociation(String value, String name)
+	{
+		sqlUser.updateItemImageAssociation(value, name);
 	}
 }

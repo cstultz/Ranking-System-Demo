@@ -14,8 +14,8 @@ public enum RankingSystemController {
 	INSTANCE();
 	
 	private User user;
-	private SqlUser_234a_t1 sqlUser;             
-
+	private SqlUser_234a_t1 sqlUser;    
+	
 	/**
 	 * Constructor for the class.
 	 */
@@ -35,7 +35,7 @@ public enum RankingSystemController {
 		
 		LoginView view = new LoginFrame();
 		LoginController controller = new LoginController(this, model, view);   
-		view.registerController(controller);                                        
+		view.registerController(controller);
 	}
 	
 	/**
@@ -43,9 +43,11 @@ public enum RankingSystemController {
 	 */
 	public void launchAdminTestSetup()
 	{
+
 		AdminTestSetupModel model = new AdminTestSetupModel();
 		model.setExistingItemsList(sqlUser.pullExistingItems());
-		model.setTestItemsList(sqlUser.pullTestItems());
+		model.setTestItemsList(sqlUser.pullTestItemsAndImages());
+		model.setImagesList(sqlUser.pullAllImages());
 		model.setUser(user);
 		
 		AdminTestSetupView view = new AdminTestSetupFrame();
@@ -59,10 +61,10 @@ public enum RankingSystemController {
 	public void launchUserTest()
 	{
 		UserTestModel model = new UserTestModel();
-		model.setTestItemsList(sqlUser.pullTestItems());	
+		model.setTestItemsList(sqlUser.pullTestItemsAndImages());
 		model.setUserTest();
 		model.setUser(user);
-		
+		model.setTestSessionID(sqlUser.getTestSessionIDScopeIdentity());		
 		UserTestView view = new UserTestFrame();
 		UserTestController controller = new UserTestController(this, model, view);    
 		view.registerController(controller);          
@@ -74,7 +76,6 @@ public enum RankingSystemController {
 	public void launchRegistration()
 	{
 		RegistrationModel model = new RegistrationModel();
-		
 		RegistrationView view = new RegistrationFrame();
 		RegistrationController controller = new RegistrationController(this, model, view);   
 		view.registerController(controller);      

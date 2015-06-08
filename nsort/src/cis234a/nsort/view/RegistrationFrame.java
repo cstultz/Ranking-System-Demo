@@ -5,6 +5,7 @@ import java.awt.event.ActionListener;
 import java.util.ArrayList;
 
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 
 import cis234a.nsort.controller.*;
@@ -27,7 +28,7 @@ public class RegistrationFrame extends JFrame implements RegistrationView
 		super("Ranking System - Registration"); 
 		registrationPanel = createRegistrationPanel();
 		getContentPane().add(registrationPanel);
-		
+		setResizable(false);
 		setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		pack();
 		setVisible(false);    
@@ -36,7 +37,7 @@ public class RegistrationFrame extends JFrame implements RegistrationView
 	
 	private RegistrationPanel createRegistrationPanel()
 	{
-		RegistrationPanel registrationPanel = new RegistrationPanel();
+		registrationPanel = new RegistrationPanel();
 		registrationPanel.addCheckAvailabilityButtonActionListener(new ActionListener()
 		{
 			@Override
@@ -151,7 +152,7 @@ public class RegistrationFrame extends JFrame implements RegistrationView
 	}
 	
 	private void newUserWelcomeMessage(RegistrationPanel registrationPanel) {
-		JOptionPane.showMessageDialog(null,"Welcome " + registrationPanel.getFirstName() + " " + registrationPanel.getLastName(),"New User Registration Success",JOptionPane.PLAIN_MESSAGE);
+		JOptionPane.showMessageDialog(null,new JLabel("Welcome " + registrationPanel.getFirstName() + " " + registrationPanel.getLastName(), JLabel.CENTER),"New User Registration Success",JOptionPane.PLAIN_MESSAGE);
 	}
 
 	private void cancelRegistrationMessage(RegistrationPanel registrationPanel) {

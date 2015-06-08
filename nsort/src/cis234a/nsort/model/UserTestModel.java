@@ -10,7 +10,7 @@ import cis234a.nsort.model.Answer.*;
 public class UserTestModel {
 	
 	private User user;
-	private ItemList testItemsList;	
+	private ItemList testItemsList;
 	private NTest userTest;	
 	private boolean userTestFrameState; 
 	private ProgressMeter progressMeter;
@@ -157,6 +157,11 @@ public class UserTestModel {
 	public String getUsername()
 	{
 		return user.getUsername();
+	}
+	
+	public String getFullName()
+	{
+		return (user.getFirstName() + " " + user.getLastName());
 	}
 	
 	/**

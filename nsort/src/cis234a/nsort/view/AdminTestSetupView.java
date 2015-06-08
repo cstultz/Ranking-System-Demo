@@ -1,5 +1,7 @@
 package cis234a.nsort.view;
 
+import java.util.ArrayList;
+
 import cis234a.nsort.model.*;
 import cis234a.nsort.controller.*;
 /**
@@ -37,7 +39,7 @@ public interface AdminTestSetupView {
 	 * 
 	 * @param selectedValue of the item being added to the test items list.
 	 */
-	public void updateTestItemsList(String selectedValue);
+	public void addItemToTestItemsList(String selectedValue);
 	
 	/**
 	 * show the duplicate message of an item on the test items list to the user
@@ -80,4 +82,15 @@ public interface AdminTestSetupView {
 	 */
 	public void registerController(AdminTestSetupController controller);
 	
+	public void updateImage(byte[] data);
+	
+	public void removeItemFromExistingItemsList(String value);
+	
+	public void removeItemFromTestItemsList(String value);
+	
+	public boolean checkItemOnTestItemsList(String value);
+	
+	public void enableFinishButton(boolean setState);
+	
+	public void setImagesList(ArrayList<String> imagesList);
 }

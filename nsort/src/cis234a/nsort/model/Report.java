@@ -12,64 +12,12 @@ import java.sql.*;
 
 public class Report 
 {
-	//private String[] columnNames;
 	private Object[][] columnData;
-	private SqlUser_234a_t1 resultSet;
+	private SqlUser_234a_t1 resultSet = SqlUser_234a_t1.INSTANCE;
 	private List userNames;
 	private List userTestID;
-	
-	public Report()
-	{
-		resultSet = SqlUser_234a_t1.INSTANCE;
-	}
-	
-//	public String[] queryColumnNames() throws SQLException
-//	{
-//		String query = "select (select value from Item where Item.itemID = TestItems.item_ID) AS 'COLUMN' from TestItems where test_ID = 1 ORDER BY item_ID";
-//		try
-//		{ 
-//			ResultSet x = resultSet.sqlQuery(query);
-//			x.last();
-//			int rowCount = x.getRow();
-//			x.beforeFirst();
-//			columnNames = new String[rowCount];
-//			int count = 0;
-//			while (x.next())
-//			{			
-//				String value = x.getString("COLUMN");
-//				if (value != null)
-//				{
-//					System.out.println(value);
-//					if (columnNames.length >= 1)
-//					{
-//						columnNames[count] = value;
-//					}
-//					count++;
-//				}
-//			}
-//		}
-//		catch (Exception e)
-//		{
-//			System.err.println("Got an exception! ");
-//			System.err.println(e.getMessage());
-//		}
-//		finally
-//		{
-//			try
-//			{
-//				resultSet.closeConnection();
-//				
-//			}
-//			catch (Exception e)
-//			{
-//					System.err.println("Got an exception! ");
-//					System.err.println(e.getMessage());
-//			}
-//		}
-//
-//		return columnNames;
-//	}
-	 
+	final private String [] testColumns = {"Item", "Win", "Loss", "Tie"} ;
+		 
 	/**
 	 * queries the database for 
 	 * @return
@@ -82,7 +30,7 @@ public class Report
 					   "JOIN dbo.Item on dbo.TestResults.item_ID = Item.itemID " +
 					   "WHERE (dbo.[User].firstName + ' ' + dbo.[User].lastName) = " + "'" + name + "'" + 
 					   "AND dbo.TestResults.testSession_ID = " + testID + 
-					   "ORDER BY WINS DESC, LOSSES DESC, TIES DESC;";
+					   "ORDER BY WINS DESC, TIES DESC, LOSSES DESC, Item.[value];";
 		try
 		{
 			int counter = 0;
@@ -123,7 +71,7 @@ public class Report
 	 * @return testColumns - returns String[] with column information
 	 */
 	public String[] getColumnData()
-	{	String [] testColumns = {"Item", "Win", "Loss", "Tie"};
+	{	
 		return testColumns;
 	}
 	
@@ -150,6 +98,7 @@ public class Report
 					userNames.add(value);
 				}
 			}
+			
 		}
 		catch (Exception e)
 		{
@@ -169,7 +118,14 @@ public class Report
 					System.err.println(e.getMessage());
 			}
 		}
-		userNames.add("Please select a user", 0);
+		if (userNames.getItemCount() == 0)
+		{
+			userNames.add("No users have taken a test", 0);
+		}
+		else
+		{
+			userNames.add("Please select a user", 0);
+		}
 		return userNames;
 	}
 
@@ -182,7 +138,7 @@ public class Report
 	public List getUsersTestID(String user)
 	{
 		userTestID = new List();
-		String query = "SELECT (testSessionID) AS 'TESTID' " + 
+		String query = "SELECT (CONVERT(VARCHAR, testSessionID, 0) + ' - ' + CONVERT(VARCHAR,insertDate, 0)) AS 'TESTID' " + 
 						"FROM dbo.TestSessions AS X INNER JOIN dbo.[User] AS Y " +
 				        "ON X.user_ID = Y.userID "+
 				        "WHERE (Y.firstName + ' ' + Y.lastName) = " + "'" + user + "'" +";";
@@ -217,7 +173,14 @@ public class Report
 					System.err.println(e.getMessage());
 			}
 		}
-		userTestID.add("Please select a TestID", 0);
+		if (userTestID.getItemCount() == 0)
+		{
+			userTestID.add("User has not taken any tests.  Please try again", 0);
+		}
+		else
+		{
+			userTestID.add("Please select a TestID and Date", 0);
+		}
 		return userTestID;
 	}
 }
